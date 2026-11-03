@@ -9,15 +9,42 @@
 <div class="inline"><div><label for="course" data-en="Course" data-es="Curso"></label><select id="course"><option value="GCSE Computer Science OCR J277">GCSE Computer Science · OCR J277</option><option value="A Level Computer Science OCR H446">A Level Computer Science · OCR H446</option><option value="Python programming">Python programming</option><option value="Exam preparation / Other">Exam preparation / Other</option></select></div><div><label for="role" data-en="I am enquiring as" data-es="Realizo la consulta como"></label><select id="role"><option value="Parent/carer" data-en="Parent / carer" data-es="Madre, padre o tutor"></option><option value="Adult learner" data-en="Adult learner" data-es="Estudiante adulto"></option></select></div></div>
 <label for="times" data-en="Preferred days and times (UK time)" data-es="Días y horarios preferidos (hora del Reino Unido)"></label><textarea id="times" maxlength="350" rows="2" style="min-height:70px" placeholder="Tuesday evening / Saturday afternoon"></textarea>
 <label for="message" data-en="Learning goals and questions" data-es="Objetivos de aprendizaje y preguntas"></label><textarea id="message" maxlength="2500" required></textarea>
-<label class="consent"><input type="checkbox" id="consent" required><span data-en="I agree to prepare an email with the information above so the academy can respond to my enquiry. I understand I must send the email myself." data-es="Acepto preparar un correo con los datos anteriores para que la academia responda a mi consulta. Entiendo que debo enviar el correo yo mismo."></span></label>
+<label class="consent"><input type="checkbox" id="consent" required><span data-en="I agree to send these details by email, or to temporarily store my enquiry for up to seven days for private review if I choose online submission. Only explicitly approved enquiries become permanent academy records." data-es="Acepto enviar estos datos por correo o almacenarlos temporalmente hasta siete días para revisión privada si elijo el envío online. Solo las consultas aprobadas expresamente se guardan como registros permanentes."></span></label>
 <p class="note" data-en="Do not include student records, safeguarding information, medical details or other sensitive data. You can review the email before sending." data-es="No incluyas expedientes de alumnos, información de protección de menores, datos médicos ni otros datos sensibles. Puedes revisar el correo antes de enviarlo."></p>
-<button type="submit" data-en="Prepare enquiry email" data-es="Preparar correo de consulta"></button></form>
+<button type="submit" data-en="Prepare enquiry email" data-es="Preparar correo de consulta"></button><div id="onlineSection" style="border-top:1px solid #bdd8f4;margin-top:18px;padding-top:16px"><p class="note" data-en="Direct online submission requires secure verification. Until enabled, use the email option above." data-es="El envío directo requiere verificación segura. Hasta su activación, utiliza el correo anterior."></p><div id="challenge" aria-label="Anti-spam verification"></div><button type="button" id="sendOnline" disabled data-en="Online submission unavailable" data-es="Envío online no disponible"></button></div></form>
 <p id="status" role="status"></p><label for="prepared" data-en="Prepared message (review or copy)" data-es="Mensaje preparado (revisar o copiar)"></label><textarea id="prepared" readonly hidden></textarea><button id="copy" type="button" class="secondary" hidden data-en="Copy enquiry" data-es="Copiar consulta"></button>
 <p class="note" data-en="If no email application opens, copy the prepared message and email staffcomplete1707@gmail.com directly." data-es="Si no se abre ninguna aplicación de correo, copia el mensaje y envíalo directamente a staffcomplete1707@gmail.com."></p>
-</section></main><script>
+</section></main><script src="intake-settings.js"></script><script>
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);const selected=params.get('lang');if(selected==='es'||selected==='en')$('lang').value=selected;
 function translate(){const l=$('lang').value;document.documentElement.lang=l;document.querySelectorAll('[data-en][data-es]').forEach(el=>{el.textContent=el.dataset[l]});$('back').href='./#enquiry';$('status').textContent=''}
 $('lang').addEventListener('change',translate);translate();
 $('enquiry').addEventListener('submit',e=>{e.preventDefault();if(!$('enquiry').reportValidity())return;const l=$('lang').value;const body=[l==='es'?'Consulta sobre clases de informática':'Computer Science tuition enquiry','', 'Name / Nombre: '+$('name').value.trim(),'Email / Correo: '+$('email').value.trim(),'Course / Curso: '+$('course').value,'Enquirer / Solicitante: '+$('role').value,'Preferred times / Horarios: '+$('times').value.trim(),'','Learning goals / Objetivos:',$('message').value.trim()].join('\n');$('prepared').value=body;$('prepared').hidden=false;$('copy').hidden=false;$('status').textContent=l==='es'?'El correo está preparado. En tu aplicación de correo, revisa y pulsa Enviar.':'Email prepared. Review it in your email application and press Send there.';location.href='mailto:staffcomplete1707@gmail.com?subject='+encodeURIComponent(l==='es'?'Consulta sobre clases de informática':'Computer Science tuition enquiry')+'&body='+encodeURIComponent(body)});
+const intake=window.ACADEMY_TUITION_INTAKE||{};
+let verifiedToken='',onlineBusy=false;
+let intakeOrigin='';
+if(intake.enabled===true&&intake.workerOrigin&&intake.turnstileSiteKey){
+ try{const u=new URL(intake.workerOrigin);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/')throw Error('Invalid Worker origin');intakeOrigin=u.origin}catch{intakeOrigin=''}
+ if(intakeOrigin){
+  const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;
+  script.onload=()=>{if(!window.turnstile)return;window.turnstile.render('#challenge',{sitekey:intake.turnstileSiteKey,callback:t=>{verifiedToken=t;$('sendOnline').disabled=false},'expired-callback':()=>{verifiedToken='';$('sendOnline').disabled=true},'error-callback':()=>{verifiedToken='';$('sendOnline').disabled=true}})};
+  document.head.append(script);
+ }
+}
+$('sendOnline').onclick=async()=>{
+ if(!intakeOrigin||!verifiedToken||onlineBusy||!$('enquiry').reportValidity())return;
+ onlineBusy=true;$('sendOnline').disabled=true;const lang=$('lang').value;
+ const message=[$('message').value.trim(),'Preferred times / Horarios: '+$('times').value.trim(),'Enquirer / Solicitante: '+$('role').value].join('\\n');
+ const courseMap={'GCSE Computer Science OCR J277':'gcse','A Level Computer Science OCR H446':'alevel','Python programming':'python','Exam preparation / Other':'other'};
+ try{
+  $('status').textContent=lang==='es'?'Enviando consulta…':'Submitting enquiry…';
+  const response=await fetch(intakeOrigin+'/intake',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:$('name').value.trim(),email:$('email').value.trim(),course:courseMap[$('course').value],language:lang,message,consent:$('consent').checked,turnstileToken:verifiedToken})});
+  const result=await response.json();
+  if(!response.ok||!result.accepted)throw Error(result.error||'Submission not confirmed');
+  $('status').textContent=(lang==='es'?'Consulta recibida para revisión privada. Referencia: ':'Enquiry received for private review. Reference: ')+result.reference;
+  $('enquiry').reset();$('lang').value=lang;translate();
+  $('status').textContent=(lang==='es'?'Consulta recibida para revisión privada. Referencia: ':'Enquiry received for private review. Reference: ')+result.reference;
+ }catch(err){$('status').textContent=(lang==='es'?'No se confirmó el envío. Utiliza la opción de correo. ':'Submission not confirmed. Please use email instead. ')+err.message}
+ finally{onlineBusy=false;verifiedToken='';if(window.turnstile)window.turnstile.reset();$('sendOnline').disabled=true}
+};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('prepared').value);$('status').textContent=$('lang').value==='es'?'Mensaje copiado.':'Message copied.'}catch{$('prepared').focus();$('prepared').select();$('status').textContent=$('lang').value==='es'?'Selecciona y copia el mensaje.':'Select and copy the message.'}};
 </script></body></html>
