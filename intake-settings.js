@@ -3,6 +3,6 @@
 // Set enabled:true and supply the public HTTPS Worker origin and PUBLIC Turnstile site key only after testing.
 window.ACADEMY_TUITION_INTAKE = Object.freeze({
   enabled: false,
-  workerOrigin: '',
-  turnstileSiteKey: ''
+  workerOrigin: 'https://projectx-tuition-intake.staffcomplete-projectx.workers.dev',
+  turnstileSiteKey: '0x4AAAAAAFzKkKk_sKKWts6t'
 });
